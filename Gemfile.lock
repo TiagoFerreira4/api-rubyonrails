@@ -96,6 +96,7 @@ GEM
       bigdecimal
       rexml
     crass (1.0.6)
+    csv (3.3.5)
     database_cleaner-active_record (2.2.1)
       activerecord (>= 5.a)
       database_cleaner-core (~> 2.0.0)
@@ -146,7 +147,8 @@ GEM
       fiber-storage
       logger
     hashdiff (1.2.0)
-    httparty (0.21.0)
+    httparty (0.23.1)
+      csv
       mini_mime (>= 1.0.0)
       multi_xml (>= 0.5.2)
     i18n (1.14.7)
@@ -408,7 +410,7 @@ DEPENDENCIES
   faker (~> 3.2)
   graphiql-rails
   graphql (~> 2.0)
-  httparty (~> 0.21.0)
+  httparty (~> 0.23.1)
   jbuilder (~> 2.11)
   kaminari (~> 1.2, >= 1.2.2)
   pg (~> 1.5)
