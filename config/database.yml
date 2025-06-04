@@ -1,0 +1,22 @@
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  username: <%= ENV['DB_USERNAME'] || 'postgres' %> # Your PostgreSQL username
+  password: <%= ENV['DB_PASSWORD'] || 'password' %> # Your PostgreSQL password
+  host: <%= ENV['DB_HOST'] || 'localhost' %>
+
+development:
+  <<: *default
+  database: digital_library_api_development
+
+test:
+  <<: *default
+  database: digital_library_api_test
+
+production:
+  <<: *default
+  url: <%= ENV['DATABASE_URL'] %> # For Heroku/Render etc.
+  database: digital_library_api_production
+  # username: digital_library_api
+  # password: <%= ENV['DIGITAL_LIBRARY_API_DATABASE_PASSWORD'] %>

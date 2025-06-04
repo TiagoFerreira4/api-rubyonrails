@@ -1,0 +1,26 @@
+<h1>Digital Library Materials (Frontend View)</h1>
+
+<% if @materials.any? %>
+  <% @materials.each do |material| %>
+    <div class="material-item">
+      <h3><%= material.title %> (<%= material.type %>)</h3>
+      <p><strong>Status:</strong> <%= material.status %></p>
+      <p><strong>Author:</strong> <%= material.author.name %> (<%= material.author.type %>)</p>
+      <p><strong>Creator:</strong> <%= material.user.email %></p>
+      <% if material.description.present? %>
+        <p><%= truncate(material.description, length: 150) %></p>
+      <% end %>
+      <%# Add specific fields if needed %>
+      <% if material.is_a?(Book) %>
+        <p><strong>ISBN:</strong> <%= material.isbn %>, <strong>Pages:</strong> <%= material.number_of_pages %></p>
+      <% elsif material.is_a?(Article) %>
+        <p><strong>DOI:</strong> <%= material.doi %></p>
+      <% elsif material.is_a?(Video) %>
+        <p><strong>Duration:</strong> <%= material.duration_minutes %> mins</p>
+      <% end %>
+    </div>
+  <% end %>
+  <%= paginate @materials %>
+<% else %>
+  <p>No materials found.</p>
+<% end %>

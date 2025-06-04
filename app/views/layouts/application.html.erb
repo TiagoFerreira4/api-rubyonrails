@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Digital Library</title>
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+  <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+  <%# Add basic styling here or link a CSS file %>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    nav { margin-bottom: 20px; }
+    nav a { margin-right: 10px; }
+    .flash { padding: 10px; margin-bottom: 10px; border: 1px solid; }
+    .flash.notice { border-color: green; background-color: lightgreen; }
+    .flash.alert, .flash.error { border-color: red; background-color: lightpink; }
+    .material-item { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+    form div { margin-bottom: 10px; }
+    form label { display: block; }
+  </style>
+</head>
+<body>
+  <nav>
+    <%= link_to "Home (Materials)", root_path %> |
+    <%= link_to "New Material (Frontend Form)", new_frontend_material_path %> |
+    <%= link_to "API Docs (Swagger)", '/api-docs' %> |
+    <%= link_to "GraphQL Playground", '/api/v1/graphql_playground' if Rails.env.development? %>
+    <% if user_signed_in? %>
+      | Signed in as <%= current_user.email %>
+      <%= button_to "Logout (Frontend Session)", destroy_user_session_path, method: :delete %>
+    <% else %>
+      | <%= link_to "Login (Frontend Session)", new_user_session_path %>
+      | <%= link_to "Sign Up (Frontend Session)", new_user_registration_path %>
+    <% end %>
+  </nav>
+
+  <% if flash.present? %>
+    <% flash.each do |type, message| %>
+      <div class="flash <%= type %>"><%= message %></div>
+    <% end %>
+  <% end %>
+
+  <%= yield %>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<h1>New Material (Frontend Form)</h1>
+
+<%# This form submits to a standard Rails controller action, not directly to the API with JS %>
+<%= form_with(model: @material, url: create_frontend_material_path, method: :post, local: true) do |form| %>
+  <% if @material.errors.any? %>
+    <div style="color: red;">
+      <h2><%= pluralize(@material.errors.count, "error") %> prohibited this material from being saved:</h2>
+      <ul>
+        <% @material.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :type %>
+    <%= form.select :type, options_for_select([['Book', 'Book'], ['Article', 'Article'], ['Video', 'Video']], @material.type), include_blank: 'Select Type' %>
+  </div>
+
+  <div>
+    <%= form.label :title %>
+    <%= form.text_field :title %>
+  </div>
+
+  <div>
+    <%= form.label :description %>
+    <%= form.text_area :description %>
+  </div>
+
+  <div>
+    <%= form.label :status %>
+    <%= form.select :status, options_for_select(MaterialStatus::VALID_STATUSES, @material.status || 'rascunho') %>
+  </div>
+
+  <div>
+    <%= form.label :author_id %>
+    <%= form.collection_select :author_id, @authors, :id, :name, { include_blank: 'Select Author' }, { required: true } %>
+  </div>
+
+  <hr>
+  <%# Type-specific fields - these could be shown/hidden with JS based on type selection %>
+  <p><strong>Book Specific:</strong></p>
+  <div>
+    <%= form.label :isbn %>
+    <%= form.text_field :isbn %>
+  </div>
+  <div>
+    <%= form.label :number_of_pages %>
+    <%= form.number_field :number_of_pages %>
+  </div>
+
+  <p><strong>Article Specific:</strong></p>
+  <div>
+    <%= form.label :doi %>
+    <%= form.text_field :doi %>
+  </div>
+
+  <p><strong>Video Specific:</strong></p>
+  <div>
+    <%= form.label :duration_minutes, "Duration (minutes)" %>
+    <%= form.number_field :duration_minutes %>
+  </div>
+  <hr>
+
+  <div>
+    <%= form.submit "Create Material" %>
+  </div>
+<% end %>
