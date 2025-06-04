@@ -19,7 +19,7 @@ gem 'kaminari', '~> 1.2', '>= 1.2.2'
 
 # Authentication
 gem 'devise', '~> 4.9'
-gem 'devise-jwt', '~> 0.10.0'
+gem 'devise-jwt', '~> 0.12.1'
 
 # Authorization
 gem 'pundit', '~> 2.3'
