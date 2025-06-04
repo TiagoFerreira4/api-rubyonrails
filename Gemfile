@@ -34,7 +34,7 @@ gem 'rswag-ui', '~> 2.8'
 gem 'rswag-specs', '~> 2.8'
 
 # HTTP Client for External API
-gem 'httparty', '~> 0.21.0'
+gem 'httparty', '~> 0.23.1'
 
 # Background Jobs (Optional, but good for external API calls if they are slow)
 # gem 'sidekiq'
