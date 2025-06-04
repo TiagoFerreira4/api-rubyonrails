@@ -4,7 +4,7 @@ git_source(:github) { |repo_name| "https://github.com/#{repo_name}.git" }
 ruby '3.2.8' # Mantendo a versão do seu ambiente
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails', branch: 'main'
-gem 'rails', '~> 7.1.5' # ATUALIZADO para a última patch da série 7.1.x estável
+gem 'rails', '~> 8.0.2' # ATUALIZADO para a última patch da série 7.1.x estável
 
 # Server
 gem 'puma', '~> 6.4' # Mantendo a versão compatível com Rails 7.1
