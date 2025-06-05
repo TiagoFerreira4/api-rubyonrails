@@ -1,10 +1,10 @@
 # app/controllers/api/v1/materials_controller.rb
+
 module Api
   module V1
     class MaterialsController < BaseController
       before_action :set_material, only: [:show, :update, :destroy]
       skip_before_action :authenticate_user!, only: [:show]
-      # OBS: Removemos :index da lista de skip, porque agora queremos exigir login para ver a lista
 
       # GET /api/v1/materials
       def index
@@ -46,41 +46,67 @@ module Api
 
       # POST /api/v1/materials
       def create
-        # 1) Descobrir qual classe (Book, Article ou Video)
+        # 1) Descobrir a classe (Book, Article ou Video)
         material_type_str = params.dig(:material, :type)&.camelize
         material_class    = material_type_str&.safe_constantize
 
         unless [::Book, ::Article, ::Video].include?(material_class)
           return render json: {
                            errors: [
-                             "Invalid material type. Must be Book, Article, or Video."
+                             "Tipo de material inválido. Use Book, Article ou Video."
                            ]
                          },
                          status: :unprocessable_entity
         end
 
-        # 2) SE for livro (Book) e veio ISBN, tente buscar título e páginas na Open Library
+        # 2) Se for Book e houver ISBN, busque dados na Open Library
         if material_class == Book
           isbn_param = params.dig(:material, :isbn).to_s.strip
 
-          if isbn_param.present? &&
-             (params[:material][:title].blank? || params[:material][:number_of_pages].blank?)
+          if isbn_param.present?
             ol_service = OpenLibraryService.new(isbn_param)
-            ol_data    = ol_service.fetch_book_data
+            book_data  = ol_service.fetch_book_data
 
-            if ol_data
-              # Só sobrescreve se title/páginas estiverem em branco
-              params[:material][:title]           = ol_data[:title]           if params[:material][:title].blank?
-              params[:material][:number_of_pages] = ol_data[:number_of_pages] if params[:material][:number_of_pages].blank?
+            if book_data
+              # 2.a) Preenche autor se veio do JSON e user não informou author_id
+              if book_data[:authors].present? && params[:material][:author_id].blank?
+                first_author = book_data[:authors].first
+                author_name  = first_author[:name]
+                author_url   = first_author[:url]
+
+                # Busca detalhes do autor (incluindo birth_date),
+                # agora com URL escapada internamente no serviço
+                details   = ol_service.fetch_author_details(author_url)
+                data_nasc = details && details[:birth_date]
+
+                # Cria ou busca PersonAuthor, preenchendo date_of_birth se houver
+                author = PersonAuthor.find_or_initialize_by(name: author_name)
+                author.date_of_birth ||= data_nasc if data_nasc.present?
+
+                # Salva sem validar (se faltar date_of_birth, ignoramos a falha de validação)
+                author.save(validate: false) unless author.persisted?
+
+                # Se criou ou achou, atribui o author_id
+                params[:material][:author_id] = author.id if author.persisted?
+              end
+
+              # 2.b) Preenche título/páginas apenas se vierem em branco no form
+              if params[:material][:title].blank?
+                params[:material][:title] = book_data[:title]
+              end
+
+              if params[:material][:number_of_pages].blank? && book_data[:number_of_pages].present?
+                params[:material][:number_of_pages] = book_data[:number_of_pages]
+              end
             end
           end
         end
 
-        # 3) Com o params já modificado (se foi Book), chame material_params_for
-        @material = material_class.new(material_params_for(material_class))
+        # 3) Monta o objeto usando material_params_for (já incluindo author_id, se preenchido)
+        @material      = material_class.new(material_params_for(material_class))
         @material.user = current_user
 
-        authorize @material   # Pundit: verifica se current_user pode criar
+        authorize @material
 
         if @material.save
           render_json @material,
@@ -97,22 +123,40 @@ module Api
 
       # PATCH/PUT /api/v1/materials/:id
       def update
-        authorize @material  # Só permite se for dono (ou outra regra no Pundit)
-
+        authorize @material
         material_class = @material.class
 
-        # Se for Book e usuário quiser alterar ISBN, podemos repetir a mesma lógica de busca de dados...
+        # Se editar um Book e trocar o ISBN, reaplica lógica de buscar dados
         if material_class == Book
           isbn_param = params.dig(:material, :isbn).to_s.strip
 
-          if isbn_param.present? &&
-             (params[:material][:title].blank? || params[:material][:number_of_pages].blank?)
+          if isbn_param.present?
             ol_service = OpenLibraryService.new(isbn_param)
-            ol_data    = ol_service.fetch_book_data
+            book_data  = ol_service.fetch_book_data
 
-            if ol_data
-              params[:material][:title]           = ol_data[:title]           if params[:material][:title].blank?
-              params[:material][:number_of_pages] = ol_data[:number_of_pages] if params[:material][:number_of_pages].blank?
+            if book_data
+              if book_data[:authors].present? && params[:material][:author_id].blank?
+                first_author = book_data[:authors].first
+                author_name  = first_author[:name]
+                author_url   = first_author[:url]
+
+                details   = ol_service.fetch_author_details(author_url)
+                data_nasc = details && details[:birth_date]
+
+                author = PersonAuthor.find_or_initialize_by(name: author_name)
+                author.date_of_birth ||= data_nasc if data_nasc.present?
+                author.save(validate: false) unless author.persisted?
+
+                params[:material][:author_id] = author.id if author.persisted?
+              end
+
+              if params[:material][:title].blank?
+                params[:material][:title] = book_data[:title]
+              end
+
+              if params[:material][:number_of_pages].blank? && book_data[:number_of_pages].present?
+                params[:material][:number_of_pages] = book_data[:number_of_pages]
+              end
             end
           end
         end
@@ -142,23 +186,24 @@ module Api
         @material = Material.find(params[:id])
       end
 
+      # Define quais campos são permitidos conforme o tipo de material
       def material_params_for(type_class)
         common_params  = [:title, :description, :status, :author_id, :type]
         book_params    = [:isbn, :number_of_pages]
         article_params = [:doi]
         video_params   = [:duration_minutes]
 
-        allowed_params = common_params
+        permitted = common_params
         case type_class.to_s
         when "Book"
-          allowed_params += book_params
+          permitted += book_params
         when "Article"
-          allowed_params += article_params
+          permitted += article_params
         when "Video"
-          allowed_params += video_params
+          permitted += video_params
         end
 
-        params.require(:material).permit(*allowed_params)
+        params.require(:material).permit(*permitted)
       end
 
       def material_blueprint_for(material)
