@@ -3,32 +3,33 @@ module Api
   module V1
     class MaterialsController < BaseController
       before_action :set_material, only: [:show, :update, :destroy]
-      # Removemos :search, pois não há action search definida aqui
-      skip_before_action :authenticate_user!, only: [:index, :show]
+      skip_before_action :authenticate_user!, only: [:show]
+      # OBS: Removemos :index da lista de skip, porque agora queremos exigir login para ver a lista
 
       # GET /api/v1/materials
       def index
+        # 1) Se tiver termo de busca, filtra esse termo apenas dentro dos materiais do usuário
         if params[:term].present?
-          # Busca por termo em título, descrição ou nome do autor, sem filtrar por status
-          materials = ::Material
-                        .joins(:author)
-                        .where(
-                          "materials.title ILIKE :t OR
-                           materials.description ILIKE :t OR
-                           authors.name ILIKE :t",
-                          t: "%#{params[:term]}%"
-                        )
-                        .includes(:author, :user)
-                        .order(created_at: :desc)
-                        .page(params[:page])
-                        .per(params[:per_page] || 10)
+          materials = current_user.materials
+                                  .joins(:author)
+                                  .where(
+                                    "materials.title ILIKE :t OR
+                                     materials.description ILIKE :t OR
+                                     authors.name ILIKE :t",
+                                    t: "%#{params[:term]}%"
+                                  )
+                                  .includes(:author, :user)
+                                  .order(created_at: :desc)
+                                  .page(params[:page])
+                                  .per(params[:per_page] || 10)
+
+        # 2) Se não tiver termo, traz todos os materiais do usuário autenticado
         else
-          # Aqui não filtramos por nenhum status: TODOS os materiais entram
-          materials = ::Material
-                        .includes(:author, :user)
-                        .order(created_at: :desc)
-                        .page(params[:page])
-                        .per(params[:per_page] || 10)
+          materials = current_user.materials
+                                  .includes(:author, :user)
+                                  .order(created_at: :desc)
+                                  .page(params[:page])
+                                  .per(params[:per_page] || 10)
         end
 
         render_json materials,
@@ -52,7 +53,6 @@ module Api
         material_type_str = params.dig(:material, :type)&.camelize
         material_class    = material_type_str&.safe_constantize
 
-        # Aqui garantimos que sejam as classes globais ::Book, ::Article e ::Video
         unless [::Book, ::Article, ::Video].include?(material_class)
           return render json: {
                            errors: [
@@ -65,7 +65,7 @@ module Api
         @material = material_class.new(material_params_for(material_class))
         @material.user = current_user
 
-        authorize @material   # Pundit check para :create?
+        authorize @material   # Pundit: verifica se current_user pode criar
 
         if @material.save
           render_json @material,
@@ -82,9 +82,9 @@ module Api
 
       # PATCH/PUT /api/v1/materials/:id
       def update
-        authorize @material  # Pundit check para :update?
+        authorize @material  # Só permite se for dono (ou outra regra no Pundit)
 
-        material_class = @material.class  # já será ::Book, ::Article ou ::Video
+        material_class = @material.class
         if @material.update(material_params_for(material_class))
           render_json @material,
                       blueprint: material_blueprint_for(@material),
@@ -99,7 +99,7 @@ module Api
 
       # DELETE /api/v1/materials/:id
       def destroy
-        authorize @material  # Pundit check para :destroy?
+        authorize @material  # Só permite se for dono
         @material.destroy
         head :no_content
       end
@@ -129,13 +129,12 @@ module Api
         params.require(:material).permit(*allowed_params)
       end
 
-      # Seleciona o Blueprint certo usando escopo global (::BookBlueprint etc.)
       def material_blueprint_for(material)
         case material
         when ::Book    then ::BookBlueprint
         when ::Article then ::ArticleBlueprint
         when ::Video   then ::VideoBlueprint
-        else MaterialBlueprint   # fallback (não usado em geral)
+        else MaterialBlueprint
         end
       end
 
