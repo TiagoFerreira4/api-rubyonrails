@@ -92,11 +92,7 @@ class FrontendController < ApplicationController
   private
 
   def material_params_from_frontend
-    # Simplified params for the frontend form
-    # Ensure strong params match your model attributes for each type
-    # This needs to be more dynamic if the form handles all types.
-    # For simplicity, let's assume a form that submits all possible fields
-    # and the model validations for the specific 'type' will pick them up.
+
     params.require(:material).permit(
       :title, :description, :status, :author_id, :type,
       :isbn, :number_of_pages, # Book

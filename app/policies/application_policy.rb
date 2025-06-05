@@ -44,10 +44,7 @@ class ApplicationPolicy
     end
 
     def resolve
-      # Default scope: if user is admin, all records, else only their own.
-      # Adjust this based on your application's needs.
-      # For public APIs, this might just be scope.all or scope.where(public: true)
-      # For materials, we will handle public visibility in controller/model scopes
+
       scope.all
     end
   end

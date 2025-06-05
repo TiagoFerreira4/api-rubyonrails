@@ -4,5 +4,5 @@ class Author < ApplicationRecord
   validates :name, presence: true
   validates :type, presence: true, inclusion: { in: %w[PersonAuthor InstitutionAuthor] }
 
-  # Common validations can go here if 'name' rules differ, otherwise in subclasses
+
 end

@@ -11,8 +11,7 @@ class Material < ApplicationRecord
   validates :user_id,     presence: true
   validates :author_id,   presence: true
 
-  # ESTA LINHA FOI REMOVIDA:
-  # validates :type,       presence: true, inclusion: { in: %w[Book Article Video] }
+
 
   scope :publicly_visible, -> { where(status: 'publicado') }
 

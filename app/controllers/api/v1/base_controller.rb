@@ -1,7 +1,7 @@
 module Api
   module V1
     class BaseController < ActionController::API
-      include Devise::Controllers::Helpers # ADICIONE ESTA LINHA
+      include Devise::Controllers::Helpers
       include Pundit::Authorization
       include ErrorHandler
 

@@ -7,8 +7,8 @@ module Api
       def create
         user = User.new(user_params)
         if user.save
-          # Optionally, you could automatically log them in and return a JWT here
-          # For now, just confirm creation. They need to login separately.
+
+
           render_json({ message: 'User created successfully. Please login.' }, status: :created, blueprint: UserBlueprint, data: user)
         else
           render json: { errors: user.errors.full_messages }, status: :unprocessable_entity
