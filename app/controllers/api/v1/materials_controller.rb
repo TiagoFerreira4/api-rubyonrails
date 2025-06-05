@@ -59,16 +59,24 @@ module Api
                          status: :unprocessable_entity
         end
 
-        # 2) Se for Book e houver ISBN, busque dados na Open Library
+        # 2) Converte ISBN vazio ("") em nil antes de qualquer outra coisa:
+        if params[:material][:isbn].to_s.strip.blank?
+          params[:material][:isbn] = nil
+        else
+          # remove espaços em branco extremidades
+          params[:material][:isbn] = params[:material][:isbn].to_s.strip
+        end
+
+        # 3) Se for Book e houver ISBN, busque dados na Open Library
         if material_class == Book
-          isbn_param = params.dig(:material, :isbn).to_s.strip
+          isbn_param = params.dig(:material, :isbn)&.to_s
 
           if isbn_param.present?
             ol_service = OpenLibraryService.new(isbn_param)
             book_data  = ol_service.fetch_book_data
 
             if book_data
-              # 2.a) Preenche autor se veio do JSON e user não informou author_id
+              # 3.a) Preenche autor se veio do JSON e user não informou author_id
               if book_data[:authors].present? && params[:material][:author_id].blank?
                 first_author = book_data[:authors].first
                 author_name  = first_author[:name]
@@ -90,8 +98,8 @@ module Api
                 params[:material][:author_id] = author.id if author.persisted?
               end
 
-              # 2.b) Preenche título/páginas apenas se vierem em branco no form
-              if params[:material][:title].blank?
+              # 3.b) Preenche título/páginas apenas se vierem em branco no form
+              if params[:material][:title].blank? && book_data[:title].present?
                 params[:material][:title] = book_data[:title]
               end
 
@@ -102,7 +110,7 @@ module Api
           end
         end
 
-        # 3) Monta o objeto usando material_params_for (já incluindo author_id, se preenchido)
+        # 4) Monta o objeto usando material_params_for (já incluindo author_id, se preenchido)
         @material      = material_class.new(material_params_for(material_class))
         @material.user = current_user
 
@@ -126,9 +134,16 @@ module Api
         authorize @material
         material_class = @material.class
 
-        # Se editar um Book e trocar o ISBN, reaplica lógica de buscar dados
+        # 1) Converte ISBN vazio ("") em nil:
+        if params[:material][:isbn].to_s.strip.blank?
+          params[:material][:isbn] = nil
+        else
+          params[:material][:isbn] = params[:material][:isbn].to_s.strip
+        end
+
+        # 2) Se for Book e houver ISBN, reaplica lógica de buscar dados
         if material_class == Book
-          isbn_param = params.dig(:material, :isbn).to_s.strip
+          isbn_param = params.dig(:material, :isbn)&.to_s
 
           if isbn_param.present?
             ol_service = OpenLibraryService.new(isbn_param)
@@ -150,7 +165,7 @@ module Api
                 params[:material][:author_id] = author.id if author.persisted?
               end
 
-              if params[:material][:title].blank?
+              if params[:material][:title].blank? && book_data[:title].present?
                 params[:material][:title] = book_data[:title]
               end
 
