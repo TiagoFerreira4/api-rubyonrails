@@ -1,30 +1,32 @@
 module Api
   module V1
     class AuthorsController < BaseController
-      skip_before_action :authenticate_user!, only: [:index, :show] # Publicly viewable
+      skip_before_action :authenticate_user!, only: [:index, :show]
 
       # GET /api/v1/authors
       def index
         authors = Author.order(name: :asc).page(params[:page]).per(params[:per_page] || 10)
-        render_json authors, blueprint: AuthorBlueprint, meta: pagination_dict(authors)
+        # ALTERADO: Adicionado 'root: :authors' para corrigir o erro do Blueprinter com meta
+        render_json authors, blueprint: AuthorBlueprint, root: :authors, meta: pagination_dict(authors)
       end
 
       # GET /api/v1/authors/:id
       def show
         author = Author.find(params[:id])
-        render_json author, blueprint: AuthorBlueprint.with_view(author_view(author))
+        # ALTERADO: A chamada .with_view foi removida e 'view:' é passada como opção
+        render_json author, blueprint: AuthorBlueprint, view: author_view(author)
       end
 
       # POST /api/v1/authors
       def create
-        # Determine type from params, default to PersonAuthor if not specified or invalid
         author_type = params.dig(:author, :type)&.safe_constantize
         author_type = PersonAuthor unless [PersonAuthor, InstitutionAuthor].include?(author_type)
 
         @author = author_type.new(author_params_for(author_type))
 
         if @author.save
-          render_json @author, status: :created, blueprint: AuthorBlueprint.with_view(author_view(@author))
+          # ALTERADO: A chamada .with_view foi removida e 'view:' é passada como opção
+          render_json @author, status: :created, blueprint: AuthorBlueprint, view: author_view(@author)
         else
           render json: { errors: @author.errors.full_messages }, status: :unprocessable_entity
         end
@@ -33,12 +35,11 @@ module Api
       # PATCH/PUT /api/v1/authors/:id
       def update
         @author = Author.find(params[:id])
-        # For simplicity, we don't allow changing author type here.
-        # If that's needed, it requires more complex logic.
-        author_type_class = @author.class # PersonAuthor or InstitutionAuthor
+        author_type_class = @author.class
 
         if @author.update(author_params_for(author_type_class))
-          render_json @author, blueprint: AuthorBlueprint.with_view(author_view(@author))
+          # ALTERADO: A chamada .with_view foi removida e 'view:' é passada como opção
+          render_json @author, blueprint: AuthorBlueprint, view: author_view(@author)
         else
           render json: { errors: @author.errors.full_messages }, status: :unprocessable_entity
         end
@@ -50,7 +51,6 @@ module Api
         if author.destroy
           head :no_content
         else
-          # This happens if restrict_with_error callback prevents deletion
           render json: { errors: author.errors.full_messages.presence || ["Cannot delete author with associated materials."] }, status: :unprocessable_entity
         end
       end

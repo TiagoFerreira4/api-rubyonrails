@@ -8,7 +8,7 @@ module Api
 
     # For the purpose of clarity, if you wanted a custom response on successful login:
     class SessionsController < Devise::SessionsController
-      # respond_to :json # Handled by Devise JWT by default for configured paths
+       respond_to :json # Handled by Devise JWT by default for configured paths
 
       # private
       # def respond_with(resource, _opts = {})
