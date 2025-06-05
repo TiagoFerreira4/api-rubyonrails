@@ -8,35 +8,31 @@ module Api
 
       # GET /api/v1/materials
       def index
-        # 1) Se tiver termo de busca, filtra esse termo apenas dentro dos materiais do usuário
         if params[:term].present?
           materials = current_user.materials
                                   .joins(:author)
                                   .where(
                                     "materials.title ILIKE :t OR
-                                     materials.description ILIKE :t OR
                                      authors.name ILIKE :t",
                                     t: "%#{params[:term]}%"
                                   )
-                                  .includes(:author, :user)
                                   .order(created_at: :desc)
                                   .page(params[:page])
                                   .per(params[:per_page] || 10)
-
-        # 2) Se não tiver termo, traz todos os materiais do usuário autenticado
         else
           materials = current_user.materials
-                                  .includes(:author, :user)
                                   .order(created_at: :desc)
                                   .page(params[:page])
                                   .per(params[:per_page] || 10)
         end
 
-        render_json materials,
-                    blueprint: MaterialBlueprint,
-                    view: :extended,
-                    root: :materials,
-                    meta: pagination_dict(materials)
+        render_json(
+          materials,
+          blueprint: MaterialBlueprint,
+          view: :extended,
+          root: :materials,
+          meta:    pagination_dict(materials)
+        )
       end
 
       # GET /api/v1/materials/:id
@@ -50,6 +46,7 @@ module Api
 
       # POST /api/v1/materials
       def create
+        # 1) Descobrir qual classe (Book, Article ou Video)
         material_type_str = params.dig(:material, :type)&.camelize
         material_class    = material_type_str&.safe_constantize
 
@@ -62,6 +59,24 @@ module Api
                          status: :unprocessable_entity
         end
 
+        # 2) SE for livro (Book) e veio ISBN, tente buscar título e páginas na Open Library
+        if material_class == Book
+          isbn_param = params.dig(:material, :isbn).to_s.strip
+
+          if isbn_param.present? &&
+             (params[:material][:title].blank? || params[:material][:number_of_pages].blank?)
+            ol_service = OpenLibraryService.new(isbn_param)
+            ol_data    = ol_service.fetch_book_data
+
+            if ol_data
+              # Só sobrescreve se title/páginas estiverem em branco
+              params[:material][:title]           = ol_data[:title]           if params[:material][:title].blank?
+              params[:material][:number_of_pages] = ol_data[:number_of_pages] if params[:material][:number_of_pages].blank?
+            end
+          end
+        end
+
+        # 3) Com o params já modificado (se foi Book), chame material_params_for
         @material = material_class.new(material_params_for(material_class))
         @material.user = current_user
 
@@ -85,6 +100,23 @@ module Api
         authorize @material  # Só permite se for dono (ou outra regra no Pundit)
 
         material_class = @material.class
+
+        # Se for Book e usuário quiser alterar ISBN, podemos repetir a mesma lógica de busca de dados...
+        if material_class == Book
+          isbn_param = params.dig(:material, :isbn).to_s.strip
+
+          if isbn_param.present? &&
+             (params[:material][:title].blank? || params[:material][:number_of_pages].blank?)
+            ol_service = OpenLibraryService.new(isbn_param)
+            ol_data    = ol_service.fetch_book_data
+
+            if ol_data
+              params[:material][:title]           = ol_data[:title]           if params[:material][:title].blank?
+              params[:material][:number_of_pages] = ol_data[:number_of_pages] if params[:material][:number_of_pages].blank?
+            end
+          end
+        end
+
         if @material.update(material_params_for(material_class))
           render_json @material,
                       blueprint: material_blueprint_for(@material),
@@ -99,7 +131,7 @@ module Api
 
       # DELETE /api/v1/materials/:id
       def destroy
-        authorize @material  # Só permite se for dono
+        authorize @material
         @material.destroy
         head :no_content
       end
@@ -107,7 +139,7 @@ module Api
       private
 
       def set_material
-        @material = ::Material.find(params[:id])
+        @material = Material.find(params[:id])
       end
 
       def material_params_for(type_class)
