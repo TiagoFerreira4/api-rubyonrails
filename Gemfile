@@ -25,7 +25,7 @@ gem 'devise-jwt', '~> 0.10.0'
 gem 'pundit', '~> 2.3'
 
 # GraphQL
-gem 'graphql', '~> 2.0'
+gem 'graphql', '~> 2.5'
 # gem 'graphql-playground-rails', '~> 1.2.1' # REMOVIDO/COMENTADO conforme decisão
 
 # API Documentation (Swagger/OpenAPI)
