@@ -226,7 +226,13 @@ GEM
     parser (3.3.8.0)
       ast (~> 2.4.1)
       racc
-    pg (1.5.9)
+    pg (1.6.2)
+    pg (1.6.2-aarch64-linux)
+    pg (1.6.2-aarch64-linux-musl)
+    pg (1.6.2-arm64-darwin)
+    pg (1.6.2-x86_64-darwin)
+    pg (1.6.2-x86_64-linux)
+    pg (1.6.2-x86_64-linux-musl)
     pp (0.6.2)
       prettyprint
     prettyprint (0.2.0)
@@ -411,7 +417,7 @@ DEPENDENCIES
   httparty (~> 0.21.0)
   jbuilder (~> 2.11)
   kaminari (~> 1.2, >= 1.2.2)
-  pg (~> 1.5)
+  pg (~> 1.6)
   puma (~> 6.4)
   pundit (~> 2.3)
   rack-cors
