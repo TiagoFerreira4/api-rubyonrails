@@ -10,7 +10,7 @@ gem 'rails', '~> 7.1.5' # ATUALIZADO para a última patch da série 7.1.x estáv
 gem 'puma', '~> 6.4' # Mantendo a versão compatível com Rails 7.1
 
 # Database
-gem 'pg', '~> 1.5'
+gem 'pg', '~> 1.6'
 
 # API Specific
 gem 'jbuilder', '~> 2.11'
