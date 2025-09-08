@@ -50,7 +50,7 @@ gem 'dotenv-rails', groups: [:development, :test]
 
 group :development, :test do
   gem 'rspec-rails', '~> 6.0'
-  gem 'factory_bot_rails', '~> 6.2'
+  gem 'factory_bot_rails', '~> 6.5'
   gem 'faker', '~> 3.2'
   gem 'shoulda-matchers', '~> 5.3'
   gem 'simplecov', require: false
